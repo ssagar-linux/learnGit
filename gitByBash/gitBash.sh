@@ -1,0 +1,76 @@
+#!/bin/bash
+set -x
+
+_hash_obj(){
+	file="$1"
+	echo $(shasum "${file}" | awk '{print $1}')
+}
+
+init(){
+	path="$1";
+	if [ ! -d "${path}" ]; then
+		echo "Path '${path}' does not exist or is not a directory."; return;
+	fi
+	cd "${path}";
+	DVCSH="$(pwd)/.dvcsh"
+	export DVCSH
+	mkdir -p "${DVCSH}/objects";
+	echo "Initialized empty repository in ${DVCSH}/";
+}
+
+add(){
+	file="$1";
+	sha=$(_hash_obj "${file}");
+	cp -p "$1" "${DVCSH}/objects/${sha}"
+
+	if [ -f "${DVCSH}/index" ]; then
+		grep -E -v "$(printf '\t')${file}\$" "${DVCSH}/index" >> "$DVCSH"/index.tmp
+	fi
+
+	printf "${sha}\t${file}\n" >> "${DVCSH}/index.tmp"
+	mv "${DVCSH}/index.tmp" "${DVCSH}/index"
+}
+
+commit(){
+	sha=$(_hash_obj "${DVCSH}/index");
+	if [ -f "${DVCSH}/objects/${sha}" ]; then
+		echo "nothing to commit"; return;
+	fi
+
+	cp -p "${DVCSH}/index" "${DVCSH}/objects/${sha}"
+
+	echo -n > "${DVCSH}/commit.last";
+	if [ -f "${DVCSH}/HEAD" ]; then
+		echo "parent: $(cat "${DVCSH}/HEAD")" >> "${DVCSH}/commit.last"
+	fi
+
+	echo "index: ${sha}" >> "${DVCSH}/commit.last";
+	echo "date: $(date)" >> "${DVCSH}/commit.last";
+	echo "comment: ${1:-(no comment)}" >> "${DVCSH}/commit.last";
+
+	sha=$(_hash_obj "${DVCSH}/commit.last");
+	cp -p "${DVCSH}/commit.last" "${DVCSH}/objects/${sha}"
+
+	echo "${sha}" > "${DVCSH}/HEAD";
+	echo "[${sha}]"
+}
+
+
+log(){
+	if [ ! -f "${DVCSH}/HEAD" ]; then
+		echo "No commits yes"; return;
+	fi
+
+	sha=$(cat "${DVCSH}/HEAD");
+	path="${DVCSH}/objects/${sha}"
+
+	while [ ! -z "${sha}" ]; do
+		echo "commit: ${sha}"
+		printf "  "; grep -E '^date: ' "${path}"
+		printf "  "; grep -E '^comment: ' "${path}"
+
+
+		sha=$(grep -E -h '^parent: ' "${path}" | awk "{print $2}")
+		path="${DVCSH}/objects/${sha}"
+	done
+}
