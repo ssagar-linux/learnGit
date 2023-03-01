@@ -1,0 +1,8 @@
+#!/bin/bash
+
+while [ 1 ]
+do
+	tree -a $1
+	sleep 2
+	clear
+done

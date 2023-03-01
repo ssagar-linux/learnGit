@@ -1,0 +1,14 @@
+#!/bin/bash
+# $1 is num of log u want to see 
+
+while [ 1 ]
+do
+	clear	
+	git --no-pager log -$1 --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' #--abbrev-commit --date=relative
+	if [ $? -ne 0 ]
+	then
+		echo ".................Pass num of entries u want see in git-log................."
+		break
+	fi
+	sleep 1
+done

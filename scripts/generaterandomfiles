@@ -1,0 +1,11 @@
+#!/bin/bash
+# $1 -- num of files to generate
+# $2 -- filename
+# $3 -- extension
+# $$ -- process id
+
+for((num=1; num<=$1; num++))
+do
+	fileName=$2$num.$3
+	echo  "A random change of $(($$*$num)) to $2$num.$3" > "$fileName"
+done
